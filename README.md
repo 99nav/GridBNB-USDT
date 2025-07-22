@@ -144,8 +144,22 @@ MIN_TRADE_AMOUNT=20.0
 # 初始本金 (用于收益计算)
 INITIAL_PRINCIPAL=800
 
+# ========== 推送通知配置 ==========
+# 启用的推送提供者，用逗号分隔，按优先级排序
+NOTIFICATION_PROVIDERS="pushplus,bark"
+
 # PushPlus 通知 Token
 PUSHPLUS_TOKEN="your_pushplus_token"
+
+# Bark 推送配置 (iOS推送)
+BARK_DEVICE_TOKEN="your_bark_device_token"
+BARK_SERVER_URL="https://api.day.app"
+
+# 钉钉机器人推送配置
+DINGTALK_WEBHOOK_URL="https://oapi.dingtalk.com/robot/send?access_token=your_token"
+
+# 企业微信机器人推送配置
+WECHAT_WORK_WEBHOOK_URL="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your_key"
 
 # 理财功能开关 (true/false)
 # 对于子账户用户或不希望使用理财功能的用户，请设置为 false
@@ -160,6 +174,85 @@ HTTP_PROXY="http://127.0.0.1:7890"
 ```
 ### https配置（可选）
 [https配置教程(可选)](README-https.md)
+
+### 推送通知配置
+
+系统支持多种推送方式，可以同时配置多个推送渠道作为备用方案：
+
+#### 支持的推送方式
+
+| 推送方式 | 平台 | 特点 | 配置难度 |
+|---------|------|------|---------|
+| **PushPlus** | 微信 | 免费、稳定、支持微信推送 | ⭐ |
+| **Bark** | iOS | 原生iOS通知、支持自定义 | ⭐⭐ |
+| **钉钉机器人** | 钉钉 | 企业级、群组通知 | ⭐⭐ |
+| **企业微信机器人** | 企业微信 | 企业级、群组通知 | ⭐⭐ |
+| **飞书机器人** | 飞书 | 企业级、支持富文本 | ⭐⭐ |
+| **Telegram机器人** | Telegram | 国际化、支持Markdown | ⭐⭐⭐ |
+
+#### 配置示例
+
+```bash
+# 启用多个推送方式（按优先级排序，支持备用方案）
+NOTIFICATION_PROVIDERS="bark,pushplus,dingtalk,feishu"
+
+# PushPlus配置（微信推送）
+PUSHPLUS_TOKEN="your_pushplus_token"
+
+# Bark配置（iOS推送）
+BARK_DEVICE_TOKEN="your_bark_device_token"
+BARK_SERVER_URL="https://api.day.app"
+
+# 钉钉机器人配置
+DINGTALK_WEBHOOK_URL="https://oapi.dingtalk.com/robot/send?access_token=your_token"
+
+# 企业微信机器人配置
+WECHAT_WORK_WEBHOOK_URL="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your_key"
+
+# 飞书机器人配置
+FEISHU_WEBHOOK_URL="https://open.feishu.cn/open-apis/bot/v2/hook/your_hook_id"
+
+# Telegram机器人配置
+TELEGRAM_BOT_TOKEN="your_bot_token"
+TELEGRAM_CHAT_ID="your_chat_id"
+```
+
+#### 获取推送Token的方法
+
+**PushPlus (推荐)**:
+1. 访问 [PushPlus官网](https://www.pushplus.plus/)
+2. 微信扫码登录
+3. 复制Token到配置文件
+
+**Bark (iOS用户)**:
+1. App Store下载Bark应用
+2. 打开应用获取设备Token
+3. 复制Token到配置文件
+
+**钉钉机器人**:
+1. 钉钉群 → 群设置 → 机器人 → 添加机器人
+2. 选择"自定义"机器人
+3. 复制Webhook地址到配置文件
+
+**企业微信机器人**:
+1. 企业微信群 → 群设置 → 群机器人 → 添加机器人
+2. 复制Webhook地址
+
+**飞书机器人**:
+1. 飞书群 → 群设置 → 群机器人 → 添加机器人
+2. 选择"自定义机器人"
+3. 复制 Webhook 地址
+
+**Telegram机器人**:
+1. 与 @BotFather 对话创建机器人
+2. 获取 Bot Token
+3. 获取聊天ID（发送消息给机器人后查看）到配置文件
+
+#### 推送策略
+
+- **备用方案**: 按配置顺序尝试推送，任一成功即停止
+- **多渠道**: 可配置同时向所有渠道推送
+- **容错机制**: 单个推送失败不影响交易执行
 
 ### 重要安全提示
 

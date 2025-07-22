@@ -48,11 +48,46 @@ def format_trade_message(side, symbol, price, amount, total, grid_size, base_ass
 
     return message
 
+# 导入新的推送管理器
+try:
+    from notification_manager import send_notification as _send_notification
+    NOTIFICATION_SYSTEM_AVAILABLE = True
+except ImportError:
+    NOTIFICATION_SYSTEM_AVAILABLE = False
+    logging.warning("新的推送系统不可用，将使用传统的PushPlus推送")
+
+
+def send_notification(content, title="交易信号通知", providers=None, **kwargs):
+    """
+    发送推送通知 - 新的统一推送接口
+
+    Args:
+        content: 推送内容
+        title: 推送标题
+        providers: 指定使用的推送提供者列表，如None则使用配置的所有提供者
+        **kwargs: 其他推送参数
+
+    Returns:
+        bool: 是否推送成功
+    """
+    if NOTIFICATION_SYSTEM_AVAILABLE:
+        return _send_notification(content, title, providers, **kwargs)
+    else:
+        # 降级到传统的PushPlus推送
+        send_pushplus_message(content, title)
+        return True
+
+
 def send_pushplus_message(content, title="交易信号通知", timeout=settings.PUSHPLUS_TIMEOUT):
+    """
+    发送PushPlus推送 - 保持向后兼容
+
+    注意：建议使用新的 send_notification 函数，支持多种推送方式
+    """
     if not settings.PUSHPLUS_TOKEN:
         logging.error("未配置PUSHPLUS_TOKEN，无法发送通知")
         return
-    
+
     url = os.getenv('PUSHPLUS_URL', 'https://www.pushplus.plus/send')
     data = {
         "token": settings.PUSHPLUS_TOKEN,
@@ -64,7 +99,7 @@ def send_pushplus_message(content, title="交易信号通知", timeout=settings.
         logging.info(f"正在发送推送通知: {title}")
         response = requests.post(url, data=data, timeout=timeout)
         response_json = response.json()
-        
+
         if response.status_code == 200 and response_json.get('code') == 200:
             logging.info(f"消息推送成功: {content}")
         else:

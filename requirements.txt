@@ -19,3 +19,16 @@ passlib>=1.7.4
 python-multipart>=0.0.6
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
+
+# 推送通知相关依赖
+# requests已包含在上面，用于HTTP推送
+# 以下是推送功能可能需要的额外依赖
+
+# 加密和签名相关（飞书、钉钉签名验证）
+cryptography>=41.0.0
+
+# 可选：如果需要更高级的HTTP客户端功能
+httpx>=0.25.0
+
+# 可选：如果需要异步推送支持
+aiohttp-requests>=0.1.3

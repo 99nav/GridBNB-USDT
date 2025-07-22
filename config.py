@@ -30,6 +30,34 @@ class Settings(BaseSettings):
     # --- 可选配置 (从 .env 读取) ---
     PUSHPLUS_TOKEN: Optional[str] = None
 
+    # --- 推送通知配置 ---
+    # 启用的推送提供者列表，用逗号分隔，按优先级排序
+    NOTIFICATION_PROVIDERS: str = "pushplus"
+
+    # Bark推送配置
+    BARK_DEVICE_TOKEN: Optional[str] = None
+    BARK_SERVER_URL: str = "https://api.day.app"
+    BARK_TIMEOUT: int = 5
+
+    # 钉钉机器人推送配置
+    DINGTALK_WEBHOOK_URL: Optional[str] = None
+    DINGTALK_SECRET: Optional[str] = None
+    DINGTALK_TIMEOUT: int = 5
+
+    # 企业微信机器人推送配置
+    WECHAT_WORK_WEBHOOK_URL: Optional[str] = None
+    WECHAT_WORK_TIMEOUT: int = 5
+
+    # 飞书机器人推送配置
+    FEISHU_WEBHOOK_URL: Optional[str] = None
+    FEISHU_SECRET: Optional[str] = None
+    FEISHU_TIMEOUT: int = 5
+
+    # Telegram机器人推送配置
+    TELEGRAM_BOT_TOKEN: Optional[str] = None
+    TELEGRAM_CHAT_ID: Optional[str] = None
+    TELEGRAM_TIMEOUT: int = 5
+
     # 理财功能开关
     ENABLE_SAVINGS_FUNCTION: bool = True
 
