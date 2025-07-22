@@ -100,40 +100,112 @@ class BarkProvider(NotificationProvider):
         if not self.is_configured():
             self.logger.error("Bark未配置DEVICE_TOKEN，无法发送通知")
             return False
-        
-        # 构建Bark API URL
-        # URL格式: https://api.day.app/{device_token}/{title}/{content}
-        url = f"{self.server_url}/{self.device_token}/{title}/{content}"
-        
-        # 添加可选参数
-        params = {}
-        if 'url' in kwargs:
-            params['url'] = kwargs['url']
-        if 'group' in kwargs:
-            params['group'] = kwargs['group']
-        if 'icon' in kwargs:
-            params['icon'] = kwargs['icon']
-        if 'sound' in kwargs:
-            params['sound'] = kwargs['sound']
-        if 'level' in kwargs:
-            params['level'] = kwargs['level']
-        
+
         try:
             self.logger.info(f"正在通过Bark发送推送通知: {title}")
-            
-            # Bark支持GET和POST，这里使用GET方式
-            response = requests.get(url, params=params, timeout=self.timeout)
-            response_json = response.json()
-            
-            if response.status_code == 200 and response_json.get('code') == 200:
-                self.logger.info(f"Bark推送成功: {content}")
+
+            # 方法1: 尝试POST方式（推荐，支持长内容）
+            success = self._send_post(title, content, **kwargs)
+            if success:
                 return True
-            else:
-                self.logger.error(f"Bark推送失败: 状态码={response.status_code}, 响应={response_json}")
-                return False
-                
+
+            # 方法2: 如果POST失败，尝试GET方式（兼容性更好）
+            self.logger.info("POST方式失败，尝试GET方式...")
+            success = self._send_get(title, content, **kwargs)
+            return success
+
         except Exception as e:
             self.logger.error(f"Bark推送异常: {str(e)}", exc_info=True)
+            return False
+
+    def _send_post(self, title: str, content: str, **kwargs) -> bool:
+        """使用POST方式发送Bark推送"""
+        try:
+            url = f"{self.server_url}/{self.device_token}"
+
+            # 构建POST数据
+            data = {
+                "title": title,
+                "body": content
+            }
+
+            # 添加可选参数
+            if 'url' in kwargs:
+                data['url'] = kwargs['url']
+            if 'group' in kwargs:
+                data['group'] = kwargs['group']
+            if 'icon' in kwargs:
+                data['icon'] = kwargs['icon']
+            if 'sound' in kwargs:
+                data['sound'] = kwargs['sound']
+            if 'level' in kwargs:
+                data['level'] = kwargs['level']
+            if 'copy' in kwargs:
+                data['copy'] = kwargs['copy']
+
+            headers = {'Content-Type': 'application/json'}
+            response = requests.post(url, json=data, headers=headers, timeout=self.timeout)
+
+            return self._handle_response(response, "POST")
+
+        except Exception as e:
+            self.logger.warning(f"POST方式发送失败: {e}")
+            return False
+
+    def _send_get(self, title: str, content: str, **kwargs) -> bool:
+        """使用GET方式发送Bark推送（兼容性更好）"""
+        try:
+            # 限制内容长度，避免URL过长
+            max_content_length = 100
+            if len(content) > max_content_length:
+                content = content[:max_content_length] + "..."
+
+            # 构建GET URL（简化版本，避免编码问题）
+            import urllib.parse
+            encoded_title = urllib.parse.quote(title)
+            encoded_content = urllib.parse.quote(content)
+
+            url = f"{self.server_url}/{self.device_token}/{encoded_title}/{encoded_content}"
+
+            # 添加可选参数
+            params = {}
+            if 'url' in kwargs:
+                params['url'] = kwargs['url']
+            if 'group' in kwargs:
+                params['group'] = kwargs['group']
+            if 'sound' in kwargs:
+                params['sound'] = kwargs['sound']
+
+            response = requests.get(url, params=params, timeout=self.timeout)
+
+            return self._handle_response(response, "GET")
+
+        except Exception as e:
+            self.logger.warning(f"GET方式发送失败: {e}")
+            return False
+
+    def _handle_response(self, response, method: str) -> bool:
+        """处理Bark API响应"""
+        if response.status_code == 200:
+            try:
+                response_json = response.json()
+                if response_json.get('code') == 200:
+                    self.logger.info(f"Bark推送成功 ({method})")
+                    return True
+                else:
+                    self.logger.error(f"Bark推送失败 ({method}): {response_json.get('message', '未知错误')}")
+                    return False
+            except ValueError:
+                # 某些情况下响应可能不是JSON，但状态码200表示成功
+                self.logger.info(f"Bark推送成功 ({method}) - 响应格式异常但状态码正常")
+                return True
+        else:
+            try:
+                response_json = response.json()
+                error_msg = response_json.get('message', '未知错误')
+                self.logger.error(f"Bark推送失败 ({method}): 状态码={response.status_code}, 错误={error_msg}")
+            except ValueError:
+                self.logger.error(f"Bark推送失败 ({method}): 状态码={response.status_code}, 响应={response.text[:100]}")
             return False
 
 
