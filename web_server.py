@@ -48,6 +48,30 @@ def auth_required(func):
 
     return wrapper
 
+def get_real_ip(request):
+    """获取真实的客户端IP地址，考虑代理情况"""
+    # 优先级顺序：X-Real-IP > X-Forwarded-For > remote
+
+    # 1. 检查 X-Real-IP 头（nginx设置的真实IP）
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        logging.debug(f"使用 X-Real-IP: {real_ip.strip()}")
+        return real_ip.strip()
+
+    # 2. 检查 X-Forwarded-For 头（可能包含多个IP，取第一个）
+    forwarded_for = request.headers.get('X-Forwarded-For')
+    if forwarded_for:
+        # X-Forwarded-For 可能包含多个IP，格式：client_ip, proxy1_ip, proxy2_ip
+        # 取第一个IP作为真实客户端IP
+        first_ip = forwarded_for.split(',')[0].strip()
+        if first_ip:
+            logging.debug(f"使用 X-Forwarded-For 第一个IP: {first_ip} (完整头: {forwarded_for})")
+            return first_ip
+
+    # 3. 如果都没有，使用 remote（直连情况）
+    logging.debug(f"使用 request.remote: {request.remote}")
+    return request.remote
+
 class IPLogger:
     def __init__(self):
         self.ip_records = []  # 存储IP访问记录
@@ -63,7 +87,7 @@ class IPLogger:
                 record['time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 record['path'] = path  # 更新访问路径
                 return
-        
+
         # 如果是新IP，添加新记录
         record = {
             'ip': ip,
@@ -71,7 +95,7 @@ class IPLogger:
             'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         self.ip_records.append(record)
-        
+
         # 如果超出最大记录数，删除最早的记录
         if len(self.ip_records) > self.max_records:
             self.ip_records.pop(0)
@@ -110,7 +134,8 @@ async def _read_log_content():
 async def handle_log(request):
     try:
         # 记录IP访问
-        ip = request.remote
+        ip = get_real_ip(request)
+        logging.info(f"访问记录 - IP: {ip}, 路径: {request.path}, Headers: X-Real-IP={request.headers.get('X-Real-IP')}, X-Forwarded-For={request.headers.get('X-Forwarded-For')}")
         request.app['ip_logger'].add_record(ip, request.path)
 
         # 获取系统资源状态
